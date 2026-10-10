@@ -229,16 +229,21 @@ fn truncate(s: &str, max: usize) -> String {
     s.chars().take(max - 3).collect::<String>() + "..."
 }
 
+fn set_offset_date(offset_date_time: OffsetDateTime) -> OffsetDateTime {
+    let offset = match UtcOffset::local_offset_at(offset_date_time) {
+        Ok(offset) => offset,
+        Err(_) => UtcOffset::UTC,
+    };
+    offset_date_time.to_offset(offset)
+}
+
 fn show_weekly_calendar_and_filter(db: &EventDatabase, filter: impl Fn(&&CalendarEvent) -> bool) {
     let fmt_weekday = format_description!("[weekday]");
     let fmt_date = format_description!("[month repr:long] [day] [year]");
     let fmt_short_time = format_description!("[hour repr:12]:[minute] [period]");
 
-    let offset = match UtcOffset::current_local_offset() {
-        Ok(offset) => offset,
-        Err(_) => UtcOffset::UTC,
-    };
-    let today: OffsetDateTime = OffsetDateTime::now_utc();
+    let today = OffsetDateTime::now_utc();
+    let offset_today = set_offset_date(today);
     let week_window = Duration::new(3600 * 24 * 7, 0);
 
     let mut cal = db.get_calendar(today - week_window, today + week_window);
@@ -249,6 +254,7 @@ fn show_weekly_calendar_and_filter(db: &EventDatabase, filter: impl Fn(&&Calenda
 
     for item in cal.iter().filter(filter) {
         let count = item.event.schedule.get_count();
+        let offset_from = set_offset_date(item.from);
 
         // the order of these checks matter
         let bound_color = match (item.index, count) {
@@ -256,10 +262,10 @@ fn show_weekly_calendar_and_filter(db: &EventDatabase, filter: impl Fn(&&Calenda
             (1, _) => Color::Cyan,
             _ => Color::White,
         };
-        let today_color = match today.to_offset(offset).date() == item.from.to_offset(offset).date()
-        {
-            true => Color::Green,
-            false => Color::White,
+        let today_color = match (offset_today, offset_from) {
+            (today, from) if today.date() == from.date() => Color::Green,
+            (today, from) if from < today => Color::DarkGrey,
+            _ => Color::Grey,
         };
 
         let count_str = count.map_or(String::from("?"), |n| format!("{}", n));
@@ -268,17 +274,17 @@ fn show_weekly_calendar_and_filter(db: &EventDatabase, filter: impl Fn(&&Calenda
             (from, Some(to)) if from.date() == to.date() => {
                 format!(
                     "{} - {}",
-                    apply_date_format(from.to_offset(offset), fmt_short_time),
-                    apply_date_format(to.to_offset(offset), fmt_short_time)
+                    apply_date_format(offset_from, fmt_short_time),
+                    apply_date_format(set_offset_date(to), fmt_short_time)
                 )
             }
-            (from, _) => apply_date_format(from.to_offset(offset), fmt_short_time),
+            _ => apply_date_format(offset_from, fmt_short_time),
         };
 
         let row = Row::from(
             vec![
-                apply_date_format(item.from.to_offset(offset), fmt_weekday),
-                apply_date_format(item.from.to_offset(offset), fmt_date),
+                apply_date_format(offset_from, fmt_weekday),
+                apply_date_format(offset_from, fmt_date),
                 time_disp,
                 format!("{}", item.index),
                 format!("{}", count_str),
