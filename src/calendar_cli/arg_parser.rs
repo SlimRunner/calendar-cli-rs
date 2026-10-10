@@ -15,7 +15,7 @@ pub enum Commands {
         #[arg(short, long, default_value = "false")]
         all: bool,
     },
-    Calendar {
+    Schedule {
         aliases: Vec<String>,
         #[arg(short, long, default_value = "false")]
         all: bool,
@@ -45,7 +45,7 @@ pub enum Commands {
 impl Commands {
     pub fn aliases(&self) -> Option<&[String]> {
         match self {
-            Commands::Calendar { aliases, .. }
+            Commands::Schedule { aliases, .. }
             | Commands::Upcoming { aliases, .. }
             | Commands::List { aliases, .. }
             | Commands::Tags { aliases, .. } => Some(aliases),

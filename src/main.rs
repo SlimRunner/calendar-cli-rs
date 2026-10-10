@@ -56,7 +56,7 @@ fn main() -> Result<(), ProgramError> {
         }
 
         command => match command {
-            Commands::Calendar { aliases: _, all } => {
+            Commands::Schedule { aliases: _, all } => {
                 dbs.iter().for_each(|db| show_weekly_calendar(&db, all))
             }
             Commands::Upcoming { aliases: _, all } => {
