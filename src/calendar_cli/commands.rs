@@ -258,7 +258,7 @@ fn show_weekly_calendar_and_filter(db: &EventDatabase, filter: impl Fn(&&Calenda
 
         // the order of these checks matter
         let bound_color = match (item.index, count) {
-            (i, n) if n.is_some() && i == n.unwrap() => Color::Yellow,
+            (i, Some(n)) if i == n => Color::Yellow,
             (1, _) => Color::Cyan,
             _ => Color::White,
         };

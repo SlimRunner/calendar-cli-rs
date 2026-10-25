@@ -111,7 +111,9 @@ impl<'a> Iterator for RepeatOccurrences<'a> {
 
             while let Some(exception) = self.exceptions.peek() {
                 if exception.index <= (self.index + 1) {
-                    let exception = self.exceptions.next().unwrap();
+                    let Some(exception) = self.exceptions.next() else {
+                        unreachable!("peeked exception must still be available");
+                    };
 
                     // BUGBUG: if you mix skips with other exceptions
                     // your warranty is void
