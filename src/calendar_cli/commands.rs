@@ -14,20 +14,56 @@ fn format_signed_duration(time: Duration) -> String {
     let minutes = (total_seconds % 3600) / 60;
     let seconds = total_seconds % 60;
 
-    match (days, time.is_negative()) {
-        (0, false) => format!("{:0>2}:{:0>2}:{:0>2}", hours, minutes, seconds),
-        (1, false) => format!(
-            "{} day, {:0>2}:{:0>2}:{:0>2}",
-            days, hours, minutes, seconds
+    let (sign, relative_text) = if time.is_negative() {
+        ("-", "since")
+    } else {
+        ("", "until")
+    };
+    let get_plural = |units: i64| if units == 1 { "" } else { "s" };
+
+    // note: anything but days are "technically" correct. They are good
+    // ballparks though. If you are waiting ~9 months you don't really
+    // care that it might be off by a couple of days. The date shows up
+    // anyway.
+
+    match days {
+        0 => format!("{:0>2}:{:0>2}:{:0>2}", hours, minutes, seconds),
+        d if d < 7 => format!(
+            "{}{} day{}, {:0>2}:{:0>2}:{:0>2}",
+            sign,
+            days,
+            get_plural(days),
+            hours,
+            minutes,
+            seconds
         ),
-        (_, true) => format!(
-            "-{} days, {:0>2}:{:0>2}:{:0>2}",
-            days, hours, minutes, seconds
-        ),
-        _ => format!(
-            "{} days, {:0>2}:{:0>2}:{:0>2}",
-            days, hours, minutes, seconds
-        ),
+        d if d < 30 => {
+            let weeks = (d + 6) / 7;
+            format!(
+                "less than {} week{} {}",
+                weeks,
+                get_plural(weeks),
+                relative_text
+            )
+        }
+        d if d < 365 => {
+            let months = (d + 29) / 30;
+            format!(
+                "less than {} month{} {}",
+                months,
+                get_plural(months),
+                relative_text
+            )
+        }
+        d => {
+            let years = (d + 364) / 365;
+            format!(
+                "less than {} year{} {}",
+                years,
+                get_plural(years),
+                relative_text
+            )
+        }
     }
 }
 
